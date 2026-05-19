@@ -6,11 +6,12 @@
 
 ## 概述
 
-本 skill 用于给前端项目配置**双通道自动部署**：
+本 skill 用于给前端项目配置**三通道自动部署**：
 
 | 通道 | 目标 | 说明 |
 |------|------|------|
-| **WebDAV** | `online/{项目名}` | 部署到 WebDAV 服务器子目录 |
+| **WebDAV (版本目录)** | `online/{项目名}` | 按 tag 版本部署，保留历史版本 |
+| **WebDAV (latest)** | `online/{项目名}/latest` | 始终指向最新版本，每次先清空再部署 |
 | **GitHub Pages** | `gh-pages` 分支 | 部署到 GitHub Pages |
 
 **触发条件**：推送 `v*` 格式的 tag（如 `v1.0.0`），或手动触发。
@@ -130,10 +131,19 @@ git push origin v1.0.0
 
 部署成功后，站点可通过以下地址访问：
 
-| 通道 | 地址 |
-|------|------|
-| **WebDAV** | `https://miya.teracloud.jp/dav/online/{项目名}/` |
-| **GitHub Pages** | `https://{用户名}.github.io/{项目名}/` |
+| 通道 | 地址 | 用途 |
+|------|------|------|
+| **WebDAV (版本)** | `https://miya.teracloud.jp/dav/online/{项目名}/` | 特定版本访问 |
+| **WebDAV (latest)** | `https://miya.teracloud.jp/dav/online/{项目名}/latest/` | 始终访问最新版本 |
+| **GitHub Pages** | `https://{用户名}.github.io/{项目名}/` | GitHub 托管 |
+
+### latest 目录说明
+
+每次部署时，workflow 会：
+1. 先清空 `online/{项目名}/latest/` 目录（如果存在）
+2. 将最新构建的文件上传到 `latest/` 目录
+
+这样 `latest/` 始终指向最新发布的版本，方便用户访问最新版而无需知道具体 tag。
 
 ---
 
