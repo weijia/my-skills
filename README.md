@@ -22,6 +22,7 @@ my-skills/
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
 | [auto-deploy](./auto-deploy/skill.md) | WebDAV + GitHub Pages 双通道自动部署 | git push tag (`v*`) |
+| [version-display](./version-display/skill.md) | Web 应用显示 GitHub tag 版本号和发布时间 | 构建时自动注入 |
 
 ## 如何使用
 
