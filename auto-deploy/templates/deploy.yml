@@ -44,8 +44,8 @@ jobs:
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
 
-      # ---------- 部署到 WebDAV (版本目录) ----------
-      - name: Upload to WebDAV (version)
+      # ---------- 部署到 WebDAV (版本目录 + latest) ----------
+      - name: Upload to WebDAV
         uses: weijia/action-upload-webdav@master
         with:
           webdav-url: ${{ secrets.WEBDAV_URL }}
@@ -53,25 +53,7 @@ jobs:
           webdav-password: ${{ secrets.WEBDAV_PASSWORD }}
           webdav-root: online/${{ github.event.repository.name }}
           source-directory: ./dist
-
-      # ---------- 清空并部署到 WebDAV (latest 目录) ----------
-      - name: Clear WebDAV latest directory
-        run: |
-          echo "Clearing latest directory..."
-          curl -X DELETE \
-            -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" \
-            "${{ secrets.WEBDAV_URL }}online/${{ github.event.repository.name }}/latest/" \
-            2>/dev/null || true
-          echo "Latest directory cleared (or did not exist)"
-
-      - name: Upload to WebDAV (latest)
-        uses: weijia/action-upload-webdav@master
-        with:
-          webdav-url: ${{ secrets.WEBDAV_URL }}
-          webdav-username: ${{ secrets.WEBDAV_USERNAME }}
-          webdav-password: ${{ secrets.WEBDAV_PASSWORD }}
-          webdav-root: online/${{ github.event.repository.name }}/latest
-          source-directory: ./dist
+          copy-to-latest: 'true'
 
       # ---------- 部署到 GitHub Pages ----------
       - name: Setup Pages

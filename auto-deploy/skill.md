@@ -139,7 +139,7 @@ git push origin v1.0.0
 
 ### latest 目录说明
 
-每次部署时，workflow 会：
+通过 `weijia/action-upload-webdav` 的 `copy-to-latest: 'true'` 参数实现。Action 会自动：
 1. 先清空 `online/{项目名}/latest/` 目录（如果存在）
 2. 将最新构建的文件上传到 `latest/` 目录
 
@@ -162,6 +162,7 @@ git push origin v1.0.0
 ## 注意事项
 
 - WebDAV action 使用的是 `weijia/action-upload-webdav@master`，会将 `source-directory` 下的所有文件上传到 `webdav-root` 指定的路径
+- 设置 `copy-to-latest: 'true'` 可同时将文件复制到 `latest/` 子目录（自动清空旧内容）
 - 如果项目使用 yarn 而非 npm，将 `npm ci` 改为 `yarn install --frozen-lockfile`，`npm run build` 改为 `yarn build`
 - WebDAV 密码通过 GitHub Secrets 存储，不会暴露在代码或日志中
 - 首次部署前请确保 WebDAV 服务器上 `online/` 目录已存在，否则可能需要手动创建
