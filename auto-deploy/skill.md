@@ -11,7 +11,7 @@
 | 通道 | 目标 | 说明 |
 |------|------|------|
 | **WebDAV (版本目录)** | `online/{项目名}` | 按 tag 版本部署，保留历史版本 |
-| **WebDAV (latest)** | `online/{项目名}/latest` | 始终指向最新版本，每次先清空再部署 |
+| **WebDAV (latest)** | `online/latest` | 始终指向最新版本，每次先清空再部署 |
 | **GitHub Pages** | `gh-pages` 分支 | 部署到 GitHub Pages |
 
 **触发条件**：推送 `v*` 格式的 tag（如 `v1.0.0`），或手动触发。
@@ -134,16 +134,36 @@ git push origin v1.0.0
 | 通道 | 地址 | 用途 |
 |------|------|------|
 | **WebDAV (版本)** | `https://miya.teracloud.jp/dav/online/{项目名}/` | 特定版本访问 |
-| **WebDAV (latest)** | `https://miya.teracloud.jp/dav/online/{项目名}/latest/` | 始终访问最新版本 |
+| **WebDAV (latest)** | `https://miya.teracloud.jp/dav/online/latest/` | 始终访问最新版本 |
 | **GitHub Pages** | `https://{用户名}.github.io/{项目名}/` | GitHub 托管 |
+
+### WebDAV 目录结构
+
+```
+online/
+├── my-app/           ← 版本目录（webdav-root: online/my-app）
+│   ├── index.html
+│   └── assets/
+└── latest/           ← 最新版本（与项目目录同级）
+    ├── index.html
+    └── assets/
+```
 
 ### latest 目录说明
 
-通过 `weijia/action-upload-webdav` 的 `copy-to-latest: 'true'` 参数实现。Action 会自动：
-1. 先清空 `online/{项目名}/latest/` 目录（如果存在）
+通过 `weijia/action-upload-webdav` 默认开启的 `copy-to-latest` 功能实现。Action 会自动：
+1. 先清空 `online/latest/` 目录（如果存在）
 2. 将最新构建的文件上传到 `latest/` 目录
 
 这样 `latest/` 始终指向最新发布的版本，方便用户访问最新版而无需知道具体 tag。
+
+### 版本自动清理
+
+Action 会在每次上传前自动检查版本目录数量，**超过 10 个版本时自动删除最旧的版本**，始终只保留最新的 10 个版本。
+
+- 排序依据：目录的创建时间（`creationdate`），无时间信息的排在最前（优先删除）
+- `latest` 目录不会被纳入清理范围
+- 清理失败不会阻止上传流程
 
 ---
 
@@ -162,7 +182,8 @@ git push origin v1.0.0
 ## 注意事项
 
 - WebDAV action 使用的是 `weijia/action-upload-webdav@master`，会将 `source-directory` 下的所有文件上传到 `webdav-root` 指定的路径
-- 设置 `copy-to-latest: 'true'` 可同时将文件复制到 `latest/` 子目录（自动清空旧内容）
+- `copy-to-latest` 默认开启，会自动将文件复制到与项目目录同级的 `latest/` 目录
+- 版本自动清理默认保留最新 10 个版本，超出部分按创建时间从旧到新删除
 - 如果项目使用 yarn 而非 npm，将 `npm ci` 改为 `yarn install --frozen-lockfile`，`npm run build` 改为 `yarn build`
 - WebDAV 密码通过 GitHub Secrets 存储，不会暴露在代码或日志中
 - 首次部署前请确保 WebDAV 服务器上 `online/` 目录已存在，否则可能需要手动创建
