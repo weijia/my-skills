@@ -32,17 +32,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ⚠️ 关键：设置 base path 为 /{项目名}/
-      # 根据构建工具选择对应的环境变量：
-      #   Vite 项目: VITE_BASE=/{项目名}/
-      #   Vue CLI:   VUE_APP_BASE=/{项目名}/
-      #   Nuxt:      NUXT_APP_BASE_PATH=/{项目名}/
-      #   Next.js:   NEXT_PUBLIC_BASE_PATH=/{项目名}/
-      #   通用:      BASE_URL=/{项目名}/
+      # ⚠️ 关键：使用相对路径，确保部署在任意子目录下都能正常工作
+      # 在 vite.config.ts 中设置 base: './'，无需通过环境变量传入
+      # 其他构建工具也建议使用相对路径配置：
+      #   Vite:     base: './'  (vite.config.ts)
+      #   Vue CLI:  publicPath: './'  (vue.config.js)
+      #   Nuxt:     base: './'  (nuxt.config.ts)
+      #   Next.js:  basePath: undefined, 使用相对路径输出
       - name: Build the project
         run: npm run build
-        env:
-          VITE_BASE: /${{ github.event.repository.name }}/
 
       # ---------- 部署到 WebDAV (版本目录 + latest) ----------
       - name: Upload to WebDAV
