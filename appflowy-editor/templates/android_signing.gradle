@@ -1,0 +1,73 @@
+// ============================================================
+// AppFlowy Editor 集成 - Android 固定签名配置
+// ============================================================
+// 问题：每次 CI 构建的 debug APK 使用自动生成的签名，导致无法覆盖安装
+// 解决：使用固定 keystore，每次构建使用同一签名
+// ============================================================
+
+// 步骤 1：生成固定 keystore（只需执行一次）
+// keytool -genkeypair \
+//   -keystore debug-keystore.jks \
+//   -keyalg RSA -keysize 2048 -validity 36500 \
+//   -alias my-debug \
+//   -storepass my-debug-pass \
+//   -keypass my-debug-pass \
+//   -dname "CN=My App Debug, OU=Dev, O=MyOrg, C=US"
+
+// 步骤 2：将 keystore 存为 GitHub Secret
+// base64 -w 0 debug-keystore.jks > keystore_base64.txt
+// gh secret set DEBUG_KEYSTORE_BASE64 --body "$(cat keystore_base64.txt)"
+// gh secret set DEBUG_KEYSTORE_PASSWORD --body "my-debug-pass"
+// gh secret set DEBUG_KEY_ALIAS --body "my-debug"
+// gh secret set DEBUG_KEY_PASSWORD --body "my-debug-pass"
+
+// ============================================================
+// build.gradle 配置（android/app/build.gradle）
+// ============================================================
+
+android {
+    // ... 其他配置 ...
+
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+        }
+        // 添加固定 debug 签名
+        debug {
+            def debugKeystoreFile = rootProject.file('debug-keystore.jks')
+            if (debugKeystoreFile.exists()) {
+                storeFile debugKeystoreFile
+                storePassword System.getenv('DEBUG_KEYSTORE_PASSWORD') ?: 'my-debug-pass'
+                keyAlias System.getenv('DEBUG_KEY_ALIAS') ?: 'my-debug'
+                keyPassword System.getenv('DEBUG_KEY_PASSWORD') ?: 'my-debug-pass'
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug  // 使用固定签名
+            // ... 其他配置 ...
+        }
+        // ... release 配置 ...
+    }
+}
+
+// ============================================================
+// GitHub Actions 配置（.github/workflows/android.yml）
+// ============================================================
+
+// 在 flutter build 之前添加：
+//
+// - name: Decode keystore
+//   run: echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > android/app/debug-keystore.jks
+//
+// - name: Build APK
+//   run: flutter build apk --debug --flavor dev
+//   env:
+//     DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
+//     DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+//     DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
