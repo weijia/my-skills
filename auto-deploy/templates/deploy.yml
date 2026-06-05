@@ -44,7 +44,7 @@ jobs:
 
       # ---------- 部署到 WebDAV (版本目录 + latest) ----------
       - name: Upload to WebDAV
-        uses: weijia/action-upload-webdav@master
+        uses: weijia/action-upload-webdav@v1.2.0
         with:
           webdav-url: ${{ secrets.WEBDAV_URL }}
           webdav-username: ${{ secrets.WEBDAV_USERNAME }}
