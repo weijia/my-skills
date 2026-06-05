@@ -1,0 +1,41 @@
+name: "Build and Upload to SFTP"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ⚠️ 替换为你的构建命令
+      - name: Build project
+        run: npm run build
+
+      # ---------- 上传到 SFTP ----------
+      - name: Upload to SFTP
+        uses: weijia/action-upload-sftp@v1.0.0
+        with:
+          sftp-host: ${{ secrets.SFTP_HOST }}
+          sftp-port: ${{ secrets.SFTP_PORT }}
+          sftp-username: ${{ secrets.SFTP_USERNAME }}
+          sftp-private-key: ${{ secrets.SFTP_PRIVATE_KEY }}
+          source-path: ./build/outputs/my-app.apk
+          remote-path: /var/www/apps/my-app/my-app.apk
+          cleanup-old-files: 'true'
+          max-keep-files: 5
