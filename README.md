@@ -28,6 +28,7 @@ my-skills/
 |-------|------|----------|
 | [auto-deploy](./auto-deploy/skill.md) | WebDAV (版本+latest) + GitHub Pages 三通道自动部署，自动清理旧版本 | git push tag (`v*`) |
 | [version-display](./version-display/skill.md) | Web 应用显示 GitHub tag 版本号和发布时间 | 构建时自动注入 |
+| [sftp-deploy](./sftp-deploy/skill.md) | SFTP 上传 APK/APP 等安装包到远程服务器 | push 代码或手动触发 |
 | [appflowy-editor](./appflowy-editor/skill.md) | Flutter AppFlowy Editor 集成：富文本编辑、表格、列表、工具栏 | 按需集成 |
 
 ## 如何使用
