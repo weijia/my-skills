@@ -15,6 +15,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ⚠️ 根据项目类型修改构建步骤
+      # ========== Flutter Android 示例 ==========
+      # - name: Setup Flutter
+      #   uses: subosito/flutter-action@v2
+      #   with:
+      #     flutter-version: '3.x'
+      #
+      # - name: Build APK
+      #   run: flutter build apk --release
+
+      # ========== Node.js 示例 ==========
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -23,18 +34,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ⚠️ 替换为你的构建命令
       - name: Build project
         run: npm run build
 
       # ---------- 上传到 SFTP ----------
       - name: Upload to SFTP
-        uses: weijia/action-upload-sftp@v1.0.0
+        uses: weijia/action-upload-sftp@master
         with:
           sftp-host: ${{ secrets.SFTP_HOST }}
           sftp-port: ${{ secrets.SFTP_PORT }}
           sftp-username: ${{ secrets.SFTP_USERNAME }}
-          sftp-private-key: ${{ secrets.SFTP_PRIVATE_KEY }}
+          # 密码认证（二选一）
+          sftp-password: ${{ secrets.SFTP_PASSWORD }}
+          # 或 SSH 私钥认证（二选一，推荐）
+          # sftp-private-key: ${{ secrets.SFTP_PRIVATE_KEY }}
           source-path: ./build/outputs/my-app.apk
           remote-path: /var/www/apps/my-app/my-app.apk
           cleanup-old-files: 'true'
