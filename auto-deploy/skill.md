@@ -139,30 +139,46 @@ git push origin v1.0.0
 
 ### WebDAV 目录结构
 
+Action 的 `getUploadDirectory()` 函数根据当前 commit 是否有 git tag 自动决定子目录名：
+
+| 条件 | 子目录名 | 说明 |
+|------|---------|------|
+| **当前 commit 有 git tag**（如 `v1.0.0`）| `release` | 固定目录，每次 tag 部署会**覆盖** |
+| **当前 commit 无 git tag** | ISO 时间戳 | 如 `2026-06-06T02-30-00`，每次创建**新目录**保留历史 |
+| **手动指定 `upload-directory`** | 自定义 | 通过参数覆盖上述规则 |
+
+**最终目录结构示例：**
+
 ```
 online/
-├── my-app/           ← 版本目录（webdav-root: online/my-app）
-│   ├── index.html
-│   └── assets/
-└── latest/           ← 最新版本（与项目目录同级）
-    ├── index.html
-    └── assets/
+└── my-app/                    ← webdav-root: online/my-app
+    ├── release/               ← 有 git tag 时的部署目录（覆盖式）
+    │   ├── index.html
+    │   └── assets/
+    ├── 2026-06-06T02-30-00/   ← 无 tag 时的部署目录（保留历史）
+    │   ├── index.html
+    │   └── assets/
+    ├── 2026-06-05T10-15-30/   ← 更早的时间戳版本
+    └── latest/                ← copy-to-latest 创建，始终最新
+        ├── index.html
+        └── assets/
 ```
 
 ### latest 目录说明
 
 通过 `weijia/action-upload-webdav` 默认开启的 `copy-to-latest` 功能实现。Action 会自动：
-1. 先清空 `online/latest/` 目录（如果存在）
-2. 将最新构建的文件上传到 `latest/` 目录
+1. 先清空 `online/{项目名}/latest/` 目录（如果存在）
+2. 将最新构建的文件复制到 `latest/` 目录
 
 这样 `latest/` 始终指向最新发布的版本，方便用户访问最新版而无需知道具体 tag。
 
 ### 版本自动清理
 
-Action 会在每次上传前自动检查版本目录数量，**超过 5 个版本时自动删除最旧的版本**，始终只保留最新的 5 个版本。
+Action 会在每次上传前自动检查 `webdav-root` 下的版本目录数量，**超过 5 个时自动删除最旧的版本**。
 
-- 排序依据：目录的创建时间（`creationdate`），无时间信息的排在最前（优先删除）
-- `latest` 目录不会被纳入清理范围
+- **清理范围**：`webdav-root` 下的所有子目录（排除 `latest/`）
+- **排序依据**：目录的创建时间（`creationdate`），无时间信息的排在最前（优先删除）
+- **注意**：`release/` 目录也会被计入版本数量。如果同时有多个时间戳目录 + release，可能触发清理
 - 清理失败不会阻止上传流程
 
 ---
