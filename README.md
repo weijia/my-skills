@@ -16,6 +16,20 @@ my-skills/
 │   └── templates/
 │       ├── editor_basic.dart  # 编辑器 Widget 模板（含工具栏、表格）
 │       └── android_signing.gradle  # Android 固定签名配置
+├── sftp-deploy/               ← SFTP 上传 APK/APP 等安装包
+│   ├── skill.md               # 使用文档
+│   └── templates/
+│       └── build-upload.yml   # SFTP 上传模板
+├── version-display/           ← Web 应用显示版本号
+│   ├── skill.md               # 使用文档
+│   └── templates/
+│       └── version.yml        # 版本注入模板
+├── flutter-build-release/      ← Flutter 多平台构建 + 版本号 + SFTP 上传
+│   ├── skill.md               # 使用文档
+│   └── templates/
+│       ├── generate_version.sh  # 版本号生成脚本
+│       ├── build-all-platforms.yml  # 多平台构建 workflow
+│       └── version.dart        # Dart 版本信息读取模板
 └── [skill-name]/              ← 更多 skills...
     ├── skill.md
     └── templates/
@@ -26,6 +40,7 @@ my-skills/
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
+| [flutter-build-release](./flutter-build-release/skill.md) | Flutter 多平台构建 + 自动版本号 + SFTP 上传安装包 | push 代码或手动触发 |
 | [auto-deploy](./auto-deploy/skill.md) | WebDAV (版本+latest) + GitHub Pages 三通道自动部署，自动清理旧版本 | git push tag (`v*`) |
 | [version-display](./version-display/skill.md) | Web 应用显示 GitHub tag 版本号和发布时间 | 构建时自动注入 |
 | [sftp-deploy](./sftp-deploy/skill.md) | SFTP 上传 APK/APP 等安装包到远程服务器 | push 代码或手动触发 |
