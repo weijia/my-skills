@@ -29,7 +29,8 @@ my-skills/
 │   └── templates/
 │       ├── generate_version.sh  # 版本号生成脚本
 │       ├── build-all-platforms.yml  # 多平台构建 workflow
-│       └── version.dart        # Dart 版本信息读取模板
+│       ├── version.dart        # Dart 版本信息读取模板
+│       └── android_signing.gradle.kts  # Android 签名配置（可更新 APK）
 └── [skill-name]/              ← 更多 skills...
     ├── skill.md
     └── templates/
@@ -40,7 +41,7 @@ my-skills/
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| [flutter-build-release](./flutter-build-release/skill.md) | Flutter 多平台构建 + 自动版本号 + SFTP 上传安装包 | push 代码或手动触发 |
+| [flutter-build-release](./flutter-build-release/skill.md) | Flutter 多平台构建 + 自动版本号 + SFTP 上传 + **可更新 APK** | push 代码或手动触发 |
 | [auto-deploy](./auto-deploy/skill.md) | WebDAV (版本+latest) + GitHub Pages 三通道自动部署，自动清理旧版本 | git push tag (`v*`) |
 | [version-display](./version-display/skill.md) | Web 应用显示 GitHub tag 版本号和发布时间 | 构建时自动注入 |
 | [sftp-deploy](./sftp-deploy/skill.md) | SFTP 上传 APK/APP 等安装包到远程服务器 | push 代码或手动触发 |

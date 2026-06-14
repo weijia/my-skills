@@ -224,6 +224,69 @@ base64 -w 0 your-keystore.jks > keystore_base64.txt
 # 将 keystore_base64.txt 的内容设为 KEYSTORE_BASE64 secret
 ```
 
+### Q: 新 APK 无法覆盖安装，提示"未安装应用"
+
+**原因**：签名不一致。每次构建使用不同签名，Android 认为是不同的 App。
+
+**解决**：
+1. 生成固定的 keystore 文件
+2. 配置 GitHub Secrets（见上方）
+3. 使用 `templates/android_signing.gradle.kts` 替换 `android/app/build.gradle.kts`
+
+### Q: 新 APK 提示"应用未安装"
+
+**原因**：versionCode 未递增或签名不一致。
+
+**解决**：
+1. 确保 versionCode 递增（本 skill 自动处理）
+2. 确保使用相同 keystore 签名
+
+---
+
+## 可更新 APK 配置
+
+要让新 APK 可以直接覆盖安装（不需要卸载旧版本），需要满足：
+
+| 条件 | 说明 | 本 Skill 支持 |
+|------|------|--------------|
+| 相同签名 | 使用同一 keystore 签名 | ✅ 配置 KEYSTORE secrets |
+| versionCode 递增 | 新版本号必须大于旧版本 | ✅ 自动生成递增版本号 |
+| 相同包名 | applicationId 必须一致 | ✅ 由项目配置保证 |
+
+### 配置步骤
+
+**1. 生成 keystore（只需一次）**
+```bash
+keytool -genkeypair \
+  -keystore release-keystore.jks \
+  -keyalg RSA -keysize 2048 -validity 36500 \
+  -alias release \
+  -storepass your-password \
+  -keypass your-password \
+  -dname "CN=Your App, OU=Dev, O=YourOrg, C=CN"
+```
+
+**2. 转为 Base64**
+```bash
+base64 -w 0 release-keystore.jks > keystore_base64.txt
+```
+
+**3. 配置 GitHub Secrets**
+```bash
+gh secret set KEYSTORE_BASE64 --body "$(cat keystore_base64.txt)"
+gh secret set KEYSTORE_PASSWORD --body "your-password"
+gh secret set KEY_ALIAS --body "release"
+gh secret set KEY_PASSWORD --body "your-password"
+```
+
+**4. 复制签名配置**
+```bash
+cp templates/android_signing.gradle.kts your-project/android/app/build.gradle.kts
+```
+
+**5. 修改包名**
+编辑 `build.gradle.kts`，将 `com.example.your_app` 替换为你的实际包名。
+
 ---
 
 ## 配合其他 Skill 使用
