@@ -185,6 +185,77 @@ export default function App() {
 }
 ```
 
+### 4. 更新提示去重（重要）
+
+Service Worker 的 `updatefound` 和 `updated` 回调都可能触发更新通知，如果不加控制会导致**通知重复弹出**。
+
+**解决方案**：使用 `updateAvailable` 标志做守卫，确保只通知一次。
+
+#### React + Vite 写法
+
+```typescript
+// ... useEffect 内
+const [show, setShow] = useState(false)
+let updateAvailable = false  // 标志位，在组件外部声明
+
+const handleUpdate = (reg: ServiceWorkerRegistration) => {
+  reg.addEventListener('updatefound', () => {
+    const newWorker = reg.installing
+    if (!newWorker) return
+
+    newWorker.addEventListener('statechange', () => {
+      // 新 Worker 已安装且等待中，只通知一次
+      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        if (!updateAvailable) {
+          updateAvailable = true
+          console.log('[PWA] 新版本可用')
+          setShow(true)
+        }
+      }
+    })
+  })
+
+  // updated 也会在某些情况下触发，也要拦截
+  // 注意：Vite PWA 的 registerType: 'prompt' 模式下 updated 可能不触发，
+  // 但其他框架（如 Vue CLI）可能同时触发 updatefound 和 updated，
+  // 所以两侧都需要加守卫
+}
+```
+
+#### Vue + Vue CLI 写法（registerServiceWorker.js）
+
+```javascript
+let swRegistration = null
+let updateAvailable = false  // 去重标志
+
+window.refreshApp = function() {
+  if (swRegistration && swRegistration.waiting) {
+    swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' })
+  }
+}
+
+register('/service-worker.js', {
+  updatefound(registration) {
+    const newWorker = registration.installing
+    newWorker.addEventListener('statechange', () => {
+      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        if (!updateAvailable) {
+          updateAvailable = true
+          window.dispatchEvent(new CustomEvent('pwa-update-available'))
+        }
+      }
+    })
+  },
+  updated(registration) {
+    // SW 更新完成也会触发，只通知一次
+    if (!updateAvailable) {
+      updateAvailable = true
+      window.dispatchEvent(new CustomEvent('pwa-update-available'))
+    }
+  },
+})
+```
+
 ## 踩坑记录
 
 | 问题 | 原因 | 解决方案 |
@@ -193,6 +264,7 @@ export default function App() {
 | 构建时间不变 | Vite define 在进程启动时求值 | 使用 `__APP_BUILD_TIME__` 全局变量 |
 | SW 文件后缀不对 | `injectManifest` 输出 `.mjs` | 检查 `dist/sw.js` 是否存在，或配置 `filename: 'sw.ts'` |
 | 更新提示不显示 | `registerType: 'autoUpdate'` | 改为 `'prompt'` 模式 |
+| 通知重复弹出 | `updatefound` 和 `updated` 同时触发 | 两处都加 `updateAvailable` 标志守卫 |
 
 ## 依赖安装
 
