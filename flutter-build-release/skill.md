@@ -280,12 +280,115 @@ gh secret set KEY_PASSWORD --body "your-password"
 ```
 
 **4. 复制签名配置**
+
+根据项目类型选择：
+
+**Flutter 项目（Kotlin DSL）**
 ```bash
 cp templates/android_signing.gradle.kts your-project/android/app/build.gradle.kts
 ```
 
+**纯 Java Android 项目（Groovy DSL）**
+```bash
+cp templates/android_signing.gradle your-project/app/build.gradle
+```
+
 **5. 修改包名**
-编辑 `build.gradle.kts`，将 `com.example.your_app` 替换为你的实际包名。
+编辑 `build.gradle.kts` 或 `build.gradle`，将 `com.example.your_app` 替换为你的实际包名。
+
+---
+
+## 纯 Java Android 项目签名配置
+
+> 适用于使用 Groovy DSL (`build.gradle`) 的传统 Android 项目，兼容 API Level 14+。
+
+### 配置步骤
+
+**1. 复制签名配置文件**
+```bash
+cp templates/android_signing.gradle your-project/app/build.gradle
+```
+
+**2. 修改包名**
+编辑 `build.gradle`，替换以下位置的包名：
+```groovy
+applicationId "com.example.your_app"  // 第 9 行
+namespace 'com.example.your_app'       // 第 31 行
+```
+
+**3. GitHub Actions Workflow 配置**
+
+在 workflow 中添加 keystore 设置步骤：
+```yaml
+    - name: Setup Release Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      run: |
+        if [ -n "$KEYSTORE_BASE64" ]; then
+          echo "$KEYSTORE_BASE64" | base64 -d > app/release-key.jks
+          echo "KEYSTORE_PATH=release-key.jks" >> $GITHUB_ENV
+        fi
+
+    - name: Build Release APK
+      env:
+        KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: gradle assembleRelease
+```
+
+### 签名配置文件详解
+
+`android_signing.gradle` 的关键设计：
+
+```groovy
+// 签名配置在 android 块之后定义
+// 避免在 android 块内使用环境变量导致的语法问题
+if (System.getenv("KEYSTORE_PATH") != null && System.getenv("KEYSTORE_PASSWORD") != null) {
+    android.signingConfigs {
+        release {
+            storeFile file(System.getenv("KEYSTORE_PATH"))
+            storePassword System.getenv("KEYSTORE_PASSWORD")
+            keyAlias System.getenv("KEY_ALIAS") ?: "release"
+            keyPassword System.getenv("KEY_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD")
+        }
+    }
+    android.buildTypes.release.signingConfig android.signingConfigs.release
+}
+```
+
+**为什么在 android 块之后定义？**
+
+在 Groovy DSL 中，如果在 `android {}` 块内直接使用 `System.getenv()` 并调用 `file()` 方法，会导致语法错误：
+```
+No signature of method: java.lang.String.call() is applicable for argument types: (String)
+```
+
+将签名配置放在 `android {}` 块之后，可以正确访问已初始化的 `android` 对象。
+
+### versionCode 递增配置
+
+为确保 APK 可更新，versionCode 必须递增。在 workflow 中：
+
+```yaml
+    - name: Get version info
+      id: version
+      run: |
+        # 使用 GitHub run_number 作为 versionCode
+        BUILD_NUMBER=${{ github.run_number }}
+        sed -i "s/versionCode 1/versionCode ${BUILD_NUMBER}/" app/build.gradle
+        echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+```
+
+### 兼容性说明
+
+| 特性 | 说明 |
+|------|------|
+| minSdk 14 | 支持 Android 4.0 (Ice Cream Sandwich) 及以上 |
+| Groovy DSL | 传统 build.gradle 格式，兼容旧项目 |
+| 纯 Java | 不使用 Kotlin，兼容旧开发环境 |
+| 无第三方依赖 | 仅使用 Android SDK 原生 API |
 
 ---
 
