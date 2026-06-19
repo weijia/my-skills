@@ -4,6 +4,102 @@
 
 ---
 
+## 纯 Java Android 项目使用
+
+> 适用于使用 Groovy DSL (`build.gradle`) 的传统 Android 项目，兼容 API Level 14+。
+
+### 配置步骤
+
+**1. 复制配置服务文件**
+```bash
+cp templates/settings_service.java your-project/app/src/main/java/com/your_app/util/ExternalStorageManager.java
+```
+
+**2. 修改包名和应用名**
+编辑 `ExternalStorageManager.java`：
+```java
+// 第 32 行：替换为你的应用名
+private static final String LEGACY_CONFIG_DIR = "YourApp";
+
+// 第 1 行：替换为你的包名
+package com.your_app.util;
+```
+
+**3. 添加存储权限**
+编辑 `AndroidManifest.xml`：
+```xml
+<!-- 外部存储权限（用于 Android 4.0-4.3） -->
+<uses-permission 
+    android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+    android:maxSdkVersion="28" />
+<uses-permission 
+    android:name="android.permission.READ_EXTERNAL_STORAGE"
+    android:maxSdkVersion="28" />
+```
+
+**4. 在 Activity 中使用**
+```java
+public class MainActivity extends Activity {
+    private ExternalStorageManager externalStorageManager;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        
+        externalStorageManager = new ExternalStorageManager(this);
+        
+        // 加载配置
+        JSONObject config = externalStorageManager.loadConfig();
+        String serverIp = config.optString("server_ip", "localhost");
+        
+        // 保存配置
+        JSONObject newConfig = new JSONObject();
+        newConfig.put("server_ip", "192.168.1.100");
+        externalStorageManager.saveConfig(newConfig);
+    }
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (externalStorageManager.handleSafResult(requestCode, resultCode, data)) {
+            // SAF 目录已选择，配置将保存到外部存储
+        }
+    }
+    
+    // 选择外部存储目录
+    private void selectExternalStorage() {
+        if (externalStorageManager.isSafAvailable()) {
+            externalStorageManager.requestSafDirectory(this);
+        }
+    }
+}
+```
+
+### 版本兼容说明
+
+| Android 版本 | 存储方式 | 说明 |
+|--------------|----------|------|
+| 4.0-4.3 (API 14-18) | 外部存储直接写入 | `/sdcard/YourApp/settings.json` |
+| 4.4+ (API 19+) | SAF | 用户选择的外部目录 |
+| 10+ (API 29+) | Scoped Storage | 应用专属外部目录 |
+
+### 配置保存位置
+
+配置会同时保存到三个位置，确保最大兼容性：
+
+1. **SAF 目录**（如果用户选择）- 卸载后保留
+2. **外部存储公共目录** - 卸载后保留（Android 4.0-4.3）
+3. **SharedPreferences** - 降级方案
+
+### 加载优先级
+
+```
+SAF → 外部存储 → SharedPreferences
+```
+
+---
+
 ## 概述
 
 Android 应用的配置默认保存在应用内部存储，卸载后会丢失。本 skill 使用 **Storage Access Framework (SAF)** 将配置保存到用户选择的外部目录，实现：
