@@ -14,10 +14,24 @@ Android 应用的配置默认保存在应用内部存储，卸载后会丢失。
 
 ---
 
+## Android 版本要求
+
+| Android 版本 | API Level | SAF 支持 | 推荐方案 |
+|-------------|-----------|---------|---------|
+| Android 4.0-4.3 | 14-18 | ❌ 不支持 | 外部存储直接写入 |
+| Android 4.4+ | 19+ | ✅ 支持 | SAF（本 skill） |
+
+**重要说明：**
+- Storage Access Framework (SAF) 在 **Android 4.4 (API 19)** 引入
+- Android 4.0-4.3 市场占有率极低（< 0.1%），建议将最低 SDK 设为 19 或更高
+- 如需支持 Android 4.0-4.3，请参考下方的替代方案
+
+---
+
 ## 前置条件
 
 - Flutter 项目
-- Android 平台
+- **Android 4.4 (API 19) 或更高版本**
 - 添加依赖：`docman`（SAF 操作库）
 
 ```yaml
@@ -84,6 +98,164 @@ await settingsService.saveUiState(
 ```dart
 final config = settingsService.gitConfig;
 final lastNote = settingsService.lastOpenedNotePath;
+```
+
+---
+
+## Android 4.0-4.3 替代方案
+
+如果需要支持 Android 4.4 以下的系统，可以使用以下替代方案：
+
+### 方案一：外部存储直接写入
+
+需要 `WRITE_EXTERNAL_STORAGE` 权限，配置保存在公共目录（如 `/sdcard/YourApp/`）。
+
+**1. 添加权限**
+
+```xml
+<!-- android/app/src/main/AndroidManifest.xml -->
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+```
+
+**2. 配置服务代码**
+
+```dart
+import 'dart:convert';
+import 'dart:io';
+
+class LegacySettingsService {
+  static const _configDir = '/sdcard/YourApp';
+  static const _configFile = 'settings.json';
+  
+  Map<String, dynamic> _config = {};
+  
+  Future<void> loadSettings() async {
+    try {
+      final file = File('$_configDir/$_configFile');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        _config = jsonDecode(content) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      _config = {};
+    }
+  }
+  
+  Future<void> saveSettings() async {
+    try {
+      final dir = Directory(_configDir);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      final file = File('$_configDir/$_configFile');
+      await file.writeAsString(jsonEncode(_config));
+    } catch (e) {
+      print('保存配置失败: $e');
+    }
+  }
+  
+  Map<String, dynamic> get config => _config;
+}
+```
+
+**缺点：**
+- 需要申请存储权限
+- 用户可能拒绝权限
+- Android 10+ 需要使用 Scoped Storage
+
+### 方案二：应用外部存储目录
+
+使用 `getExternalStorageDirectory()` 获取应用专属外部目录。
+
+**1. 添加依赖**
+
+```yaml
+dependencies:
+  path_provider: ^2.0.0
+```
+
+**2. 配置服务代码**
+
+```dart
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+
+class LegacySettingsService {
+  static const _configFile = 'settings.json';
+  
+  Map<String, dynamic> _config = {};
+  String? _configPath;
+  
+  Future<void> loadSettings() async {
+    try {
+      final dir = await getExternalStorageDirectory();
+      if (dir == null) return;
+      
+      _configPath = '${dir.path}/$_configFile';
+      final file = File(_configPath!);
+      
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        _config = jsonDecode(content) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      _config = {};
+    }
+  }
+  
+  Future<void> saveSettings() async {
+    if (_configPath == null) return;
+    
+    try {
+      final file = File(_configPath!);
+      await file.writeAsString(jsonEncode(_config));
+    } catch (e) {
+      print('保存配置失败: $e');
+    }
+  }
+  
+  Map<String, dynamic> get config => _config;
+}
+```
+
+**缺点：**
+- 卸载应用后目录会被删除
+- 配置无法保留
+
+### 方案三：版本兼容处理
+
+根据 Android 版本自动选择存储方案：
+
+```dart
+import 'dart:io';
+import 'package:flutter/services.dart';
+
+class SettingsService {
+  static const int SAF_MIN_API = 19; // Android 4.4
+  
+  Future<bool> _isSafSupported() async {
+    if (!Platform.isAndroid) return false;
+    
+    try {
+      final version = await MethodChannel('device_info').invokeMethod<int>('androidVersion');
+      return version != null && version >= SAF_MIN_API;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  Future<void> loadSettings() async {
+    if (await _isSafSupported()) {
+      // 使用 SAF 方案
+      await _loadFromSaf();
+    } else {
+      // 使用传统方案
+      await _loadFromExternalStorage();
+    }
+  }
+}
 ```
 
 ---
@@ -192,6 +364,7 @@ Future<void> restoreSafDirectory() async {
 2. **降级处理** - 如果 SAF 不可用，自动降级到 SharedPreferences
 3. **iOS 不支持** - SAF 是 Android 特有功能，iOS 使用 iCloud 或其他方案
 4. **文件覆盖** - 写入时先删除旧文件再创建新文件
+5. **版本兼容** - Android 4.4 以下不支持 SAF，需使用替代方案
 
 ---
 
@@ -210,6 +383,10 @@ Future<void> restoreSafDirectory() async {
 ### Q: 配置文件损坏
 
 **解决**：使用 try-catch 包裹解析逻辑，失败时使用默认配置。
+
+### Q: 如何支持 Android 4.0-4.3？
+
+**解决**：参考上方「Android 4.0-4.3 替代方案」章节，使用外部存储直接写入或版本兼容处理。
 
 ---
 
