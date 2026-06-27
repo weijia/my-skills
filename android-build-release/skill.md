@@ -71,7 +71,11 @@ No signature of method: java.lang.String.call() is applicable for argument types
 
 ---
 ## 步骤三：生成 Keystore 并配置 GitHub Secrets
-### 1. 生成 keystore（只需一次）
+> keystore 只需生成一次，丢失后无法恢复，所有用户必须卸载重装。
+
+### 方式一：手动操作（人类开发者）
+
+#### 1. 生成 keystore（只需一次）
 ```bash
 keytool -genkeypair \
   -keystore release-keystore.jks \
@@ -82,12 +86,12 @@ keytool -genkeypair \
   -dname "CN=YourApp, OU=Dev, O=YourOrg, C=CN"
 ```
 
-### 2. 转为 Base64
+#### 2. 转为 Base64
 ```bash
 base64 -w 0 release-keystore.jks > keystore_base64.txt
 ```
 
-### 3. 配置 GitHub Secrets
+#### 3. 通过 GitHub CLI 设置 Secrets
 ```bash
 PROJ="【项目名】"
 USERNAME="【GitHub用户名】"
@@ -104,6 +108,98 @@ gh secret set SFTP_HOST --repo "$ROOT" --body "your-sftp-host"
 gh secret set SFTP_PORT --repo "$ROOT" --body "22"
 gh secret set SFTP_USERNAME --repo "$ROOT" --body "sftp-username"
 gh secret set SFTP_PASSWORD --repo "$ROOT" --body "sftp-password"
+```
+
+### 方式二：自动化程序（Agent / CI 脚本）
+
+以下步骤供 Agent（如 TRAE）或其他自动化脚本参考，实现无需人工干预的 keystore 生成和 Secrets 配置。
+
+#### 1. 生成随机密码
+```bash
+PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
+echo "Generated password: $PASSWORD"
+```
+
+#### 2. 生成 keystore
+```bash
+keytool -genkeypair \
+  -keystore /tmp/release-keystore.jks \
+  -keyalg RSA -keysize 2048 -validity 36500 \
+  -alias release \
+  -storepass "$PASSWORD" \
+  -keypass "$PASSWORD" \
+  -dname "CN=YourApp, OU=Dev, O=YourOrg, C=CN"
+```
+
+#### 3. 转为 Base64
+```bash
+base64 -w 0 /tmp/release-keystore.jks > /tmp/keystore_base64.txt
+KEYSTORE_BASE64=$(cat /tmp/keystore_base64.txt)
+```
+
+#### 4. 通过 GitHub API 设置 Secrets（需要 PAT）
+```python
+# Python 示例（需要 pynacl 库）
+import base64, json, urllib.request
+from nacl import encoding, public
+
+TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxxxxxx"  # 需要 repo 权限的 PAT
+REPO = "用户名/仓库名"
+
+def get_public_key():
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{REPO}/actions/secrets/public-key",
+        headers={"Authorization": f"token {TOKEN}", "Accept": "application/vnd.github+json"}
+    )
+    resp = urllib.request.urlopen(req)
+    data = json.loads(resp.read().decode("utf-8"))
+    return data["key"], data["key_id"]
+
+def encrypt_secret(public_key_str, secret_value):
+    public_key = public.PublicKey(
+        encoding.Base64Encoder.decode(public_key_str.encode("utf-8"))
+    )
+    sealed_box = public.SealedBox(public_key)
+    encrypted = sealed_box.encrypt(secret_value.encode("utf-8"))
+    return base64.b64encode(encrypted).decode("utf-8")
+
+def set_secret(name, value):
+    public_key_str, key_id = get_public_key()
+    encrypted = encrypt_secret(public_key_str, value)
+    
+    data = {"encrypted_value": encrypted, "key_id": key_id}
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{REPO}/actions/secrets/{name}",
+        data=json.dumps(data).encode("utf-8"),
+        method="PUT",
+        headers={
+            "Authorization": f"token {TOKEN}",
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json"
+        }
+    )
+    urllib.request.urlopen(req)
+
+# 设置 Secrets
+set_secret("KEYSTORE_BASE64", KEYSTORE_BASE64)
+set_secret("KEYSTORE_PASSWORD", PASSWORD)
+set_secret("KEY_ALIAS", "release")
+set_secret("KEY_PASSWORD", PASSWORD)
+```
+
+#### 5. 输出结果给用户
+```
+✅ 配置完成！
+已配置的 Secrets：
+- KEYSTORE_BASE64
+- KEYSTORE_PASSWORD
+- KEY_ALIAS=release
+- KEY_PASSWORD
+
+keystore 文件备份：/tmp/release-keystore.jks
+密码备份：/tmp/keystore_password.txt
+
+⚠️ 请保存好 keystore 文件和密码，丢失后无法恢复！
 ```
 
 ### Secrets 清单
@@ -225,3 +321,4 @@ Tag 触发时会同时创建 GitHub Release。
 | [sftp-deploy](../sftp-deploy/skill.md) | SFTP 上传的详细配置参考 |
 | [version-display](../version-display/skill.md) | 版本号展示组件 |
 | [android-external-storage](../android-external-storage/skill.md) | Android 外部存储配置持久化 |
+
