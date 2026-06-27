@@ -315,10 +315,65 @@ Tag 触发时会同时创建 GitHub Release。
 - 无第三方依赖，仅使用 Android SDK 原生 API，兼容 API Level 14+
 
 ---
+## 使用提示词（Agent 调用模板）
+
+将以下内容直接发给 AI Agent（如 TRAE、Cursor、Claude），Agent 会自动读取本 skill 并完成全部配置。
+
+```
+请帮我使用 my-skills 仓库中的 android-build-release skill 来配置 Android 项目的自动构建和发布。
+
+### 必需参数
+- **GitHub PAT**: {有 repo 权限的 GitHub 个人访问令牌}
+- **目标仓库**: {用户名/仓库名}，例如 weijia/my-android-app
+- **包名 (applicationId)**: {com.example.myapp}
+
+### 可选参数
+- **SFTP 服务器地址**: {如为空则跳过 SFTP 上传}
+- **SFTP 端口**: {默认 22}
+- **SFTP 用户名**: 
+- **SFTP 密码**: 
+- **版本号策略**: {github.run_number（默认）| git-tag | 手动}
+- **APP 内更新检查**: {启用（默认）| 不启用}
+
+### 执行步骤
+1. 读取 https://github.com/weijia/my-skills/blob/main/android-build-release/skill.md 了解完整流程
+2. 检查目标仓库的 app/build.gradle，确认 applicationId 和 minSdk
+3. 如果仓库没有 keystore secrets，按"方式二：自动化程序"生成并配置
+4. 将 templates/build-release.yml 复制到目标仓库 .github/workflows/
+5. 将 templates/AppUpdateChecker.java 复制到目标仓库（如启用更新检查）
+6. 修改模板中的占位符【项目名】为实际项目名
+7. 更新目标仓库的 AndroidManifest.xml（添加权限和 FileProvider）
+8. 创建 res/xml/file_paths.xml
+9. 将 AppFileProvider.java 复制到目标仓库 util 目录
+10. 提交所有更改到目标仓库
+11. 输出配置结果和 keystore 备份信息
+
+### 注意事项
+- 务必备份生成的 keystore 文件和密码，丢失后无法恢复
+- 如果目标仓库已有 KEYSTORE_BASE64 secret，询问用户是否替换
+- 确保 build.gradle 中的签名配置与 skill 文档一致
+```
+
+### 参数速查表
+
+| 参数 | 必填 | 示例 | 说明 |
+|------|------|------|------|
+| GitHub PAT | 是 | `ghp_xxx...` | 需要 `repo` 权限 |
+| 目标仓库 | 是 | `weijia/stock-android-app` | 格式：用户名/仓库名 |
+| 包名 | 是 | `com.stock.app` | build.gradle 中的 applicationId |
+| SFTP 地址 | 否 | `192.168.1.100` | 不上传可留空 |
+| SFTP 端口 | 否 | `22` | 默认 22 |
+| SFTP 用户名 | 否 | `github` | 密码认证必填 |
+| SFTP 密码 | 否 | `password` | 密码认证必填 |
+| 版本号策略 | 否 | `github.run_number` | 自动递增 |
+| APP 内更新 | 否 | `启用` | 在 MainActivity 中调用检查 |
+
+---
 ## 配合其他 Skill 使用
 | Skill | 配合方式 |
 |-------|---------|
 | [sftp-deploy](../sftp-deploy/skill.md) | SFTP 上传的详细配置参考 |
 | [version-display](../version-display/skill.md) | 版本号展示组件 |
 | [android-external-storage](../android-external-storage/skill.md) | Android 外部存储配置持久化 |
+
 
