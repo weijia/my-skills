@@ -35,6 +35,10 @@ my-skills/
 │   ├── skill.md               # 使用文档
 │   └── templates/
 │       └── settings_service.dart  # 配置服务模板
+├── zen-fs-config/              ← Node.js 分布式配置管理（ZenFS + 同步 + 冲突安全）
+│   ├── skill.md               # 使用文档 + AI Agent 提示词
+│   └── templates/
+│       └── config-init.ts     # ConfigRepo 初始化模板
 └── [skill-name]/              ← 更多 skills...
     ├── skill.md
     └── templates/
@@ -51,6 +55,7 @@ my-skills/
 | [version-display](./version-display/skill.md) | Web 应用显示 GitHub tag 版本号和发布时间 | 构建时自动注入 |
 | [sftp-deploy](./sftp-deploy/skill.md) | SFTP 上传 APK/APP 等安装包到远程服务器 | push 代码或手动触发 |
 | [appflowy-editor](./appflowy-editor/skill.md) | Flutter AppFlowy Editor 集成：富文本编辑、表格、列表、工具栏 | 按需集成 |
+| [zen-fs-config](./zen-fs-config/skill.md) | Node.js 分布式配置管理：多应用隔离、多后端同步、节点本地配置、冲突安全 | 按需集成 |
 
 ## 如何使用
 
