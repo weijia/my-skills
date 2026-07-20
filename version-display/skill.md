@@ -21,6 +21,17 @@
 | **方案一：CI 环境变量注入** | GitHub Actions 自动部署 | Git tag | Tag 创建时间 |
 | **方案二：本地构建时生成** | 本地 `npm run build` 后手动部署 | Git branch/tag + sha | 构建时的北京时间 |
 
+### 如何选择
+
+| 项目类型 | 推荐方案 | 原因 |
+|---------|---------|------|
+| **网页程序**（Vite / Vue / React / 纯 HTML） | **方案二** | 本地 `npm run build` 后直接部署到 WebDAV / GitHub Pages / 静态托管，无需 CI |
+| **Flutter / Android / iOS** | **方案一** | 需要通过 CI 构建多平台产物（APK、IPA），环境变量注入更可靠 |
+| **Node.js CLI / 后端服务** | **方案一** | 通常通过 CI/CD 发布到服务器，环境变量与发布流程绑定 |
+| **同时需要 CI + 本地构建** | **方案二** | `generate-version.js` 在 CI 中也会执行，兼容两种场景 |
+
+> 一句话：**网页程序用方案二，其他程序用方案一**。
+
 ---
 
 ## 前置条件
