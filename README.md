@@ -43,6 +43,16 @@ my-skills/
 │   ├── skill.md               # 使用文档
 │   └── templates/
 │       └── publish.yml        # GitHub Actions 发布模板
+├── doc-writer/                ← 开发项目文档写作（需求 / 用例 / 设计）· CodeBuddy skill
+│   ├── skill.md               # frontmatter + 写作纪律（Windows 下 SKILL.md 大小写不敏感，等同识别）
+│   └── templates/
+│       ├── requirements-template.md  # 需求文档骨架
+│       ├── usecase-template.md       # 用例文档骨架
+│       └── design-template.md        # 设计文档骨架
+├── testcase-writer/           ← 测试用例文档写作（计划 / 用例 / 清单 / 报告）· CodeBuddy skill
+│   ├── SKILL.md               # frontmatter + 写作纪律（Windows 下 skill.md 同名，故用 SKILL.md）
+│   └── templates/
+│       └── testcase-template.md     # 测试用例文档骨架
 └── [skill-name]/              ← 更多 skills...
     ├── skill.md
     └── templates/
@@ -61,6 +71,8 @@ my-skills/
 | [appflowy-editor](./appflowy-editor/skill.md) | Flutter AppFlowy Editor 集成：富文本编辑、表格、列表、工具栏 | 按需集成 |
 | [zen-fs-config](./zen-fs-config/skill.md) | Node.js 分布式配置管理：多应用隔离、多后端同步、节点本地配置、冲突安全 | 按需集成 |
 | [npm-auto-publish](./npm-auto-publish/skill.md) | npm 包自动发布：GitHub Actions CI/CD，push tag 即构建测试并发布到 npmjs | git push tag (`v*`) |
+| [doc-writer](./doc-writer/SKILL.md) | 开发项目文档写作：需求（PRD）/ 用例 / 设计文档的结构化规范与模板 | 写 / 改需求、用例、设计文档时 |
+| [testcase-writer](./testcase-writer/SKILL.md) | 测试用例写作：测试计划 / 用例 / 清单 / 报告，含可追溯矩阵与正负向/边界覆盖 | 写 / 改测试文档时 |
 
 ## 如何使用
 
