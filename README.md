@@ -53,6 +53,13 @@ my-skills/
 │   ├── SKILL.md               # frontmatter + 写作纪律（Windows 下 skill.md 同名，故用 SKILL.md）
 │   └── templates/
 │       └── testcase-template.md     # 测试用例文档骨架
+├── fullstack-test-guard/      ← 全栈测试盲区守卫（契约 / Schema / 部署 / 真实冒烟）
+│   ├── SKILL.md               # 四层盲区表 + 6 条硬性纪律 + 排查动作
+│   └── templates/
+│       ├── contract-check.py        # 前端 API 路径 ↔ 后端路由 契约比对
+│       ├── schema-check.py          # ORM 元数据 ↔ 目标库 schema 一致性校验
+│       ├── deploy-guard.yml         # 迁移 Job 重跑 + 等待完成 + 业务冒烟
+│       └── blindspot-checklist.md   # 交付前盲区自查清单
 └── [skill-name]/              ← 更多 skills...
     ├── skill.md
     └── templates/
@@ -73,6 +80,7 @@ my-skills/
 | [npm-auto-publish](./npm-auto-publish/skill.md) | npm 包自动发布：GitHub Actions CI/CD，push tag 即构建测试并发布到 npmjs | git push tag (`v*`) |
 | [doc-writer](./doc-writer/SKILL.md) | 开发项目文档写作：需求（PRD）/ 用例 / 设计文档的结构化规范与模板 | 写 / 改需求、用例、设计文档时 |
 | [testcase-writer](./testcase-writer/SKILL.md) | 测试用例写作：测试计划 / 用例 / 清单 / 报告，含可追溯矩阵与正负向/边界覆盖 | 写 / 改测试文档时 |
+| [fullstack-test-guard](./fullstack-test-guard/SKILL.md) | 全栈测试盲区守卫：识别离线桩 E2E / 自动建表测试库造成的盲区，补契约、Schema、部署迁移、真实冒烟四层防护 | 补齐/评审测试，或出现「线上报错但测试全绿」时 |
 
 ## 如何使用
 

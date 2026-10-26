@@ -1,0 +1,60 @@
+# 部署期守卫片段：迁移必须重跑 + 必须用本次镜像 + 必须等待完成
+#
+# 三个极易踩的坑（任一都会导致"线上缺表 → 500"，而所有测试仍全绿）：
+#   1. Kubernetes 同名 Job 再次 `kubectl apply` **不会重新执行**
+#      → 必须先 delete 再 apply
+#   2. 迁移 Job 用固定 tag（如 :1.0.0）+ imagePullPolicy: IfNotPresent
+#      → 会用陈旧镜像建表，新模型的表根本建不出来
+#      → 必须替换成本次发布的 $SHA，且 IfNotPresent 改为 Always 或保证镜像已导入
+#   3. 不等迁移完成就继续 rollout / 只打 /health
+#      → 迁移失败无人知晓，健康检查还会"通过"
+
+      # —— 放在 "Build Docker images" 之后、"Set image and rollout" 之前 ——
+      - name: Run DB migration (must re-run every deploy)
+        run: |
+          set -e
+          # 坑2：把迁移 Job 的镜像替换成本次构建的 SHA，避免用陈旧镜像建表
+          sed -i "s|image: .*iot-backend:.*|image: docker.io/library/iot-backend:$SHA|" \
+            deploy/k8s/manifests/40-dbinit.yaml
+          sed -i "s|imagePullPolicy: .*|imagePullPolicy: IfNotPresent|" \
+            deploy/k8s/manifests/40-dbinit.yaml
+          # 坑1：同名 Job 不会重跑，必须先删
+          k3s kubectl delete job iot-dbinit -n iot --ignore-not-found=true
+          k3s kubectl apply --validate=false -f deploy/k8s/manifests/40-dbinit.yaml
+          # 坑3：等待完成，失败即中断发布
+          k3s kubectl wait --for=condition=complete job/iot-dbinit -n iot --timeout=600s
+
+      - name: Verify schema conformance
+        run: |
+          set -e
+          # 用本次镜像跑一次 schema 校验：模型定义的表必须都真实存在
+          # 缺表会直接暴露在这里，而不是等到用户打开页面才发现 500
+          k3s kubectl run schema-check-$SHA \
+            --image=docker.io/library/iot-backend:$SHA \
+            --image-pull-policy=IfNotPresent \
+            --rm -i --restart=Never -n iot \
+            --env="DATABASE_URL=$DATABASE_URL" \
+            --command -- python scripts/schema-check.py
+          # 清理（幂等）
+          k3s kubectl delete pod schema-check-$SHA -n iot --ignore-not-found=true || true
+
+      # —— 健康检查：不能只打 /health ——
+      - name: Business smoke (not just /health)
+        run: |
+          set -e
+          BASE=http://iot-frontend.iot.svc.cluster.local
+          # 1) 进程活着
+          curl -sf $BASE/health
+          # 2) 版本与本次 SHA 一致
+          curl -sf $BASE/prod-api/version | grep -q "\"git_commit\":\"$SHA\""
+          # 3) 业务冒烟：至少覆盖各模块 P0 列表接口。
+          #    未登录应返回 401（认证生效）而不是 500（缺表/崩溃）——
+          #    这条断言正是"生产缺表"的探针：表缺失时未登录也会 500。
+          for p in /prod-api/iot/group/list /prod-api/device/list /prod-api/system/post/list; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' $BASE$p)
+            echo "$p -> $code"
+            case "$code" in
+              401|200) ;;   # 正常：要求认证 / 匿名可读
+              *) echo "❌ $p 异常状态码 $code（500 通常意味着缺表或迁移失败）"; exit 1 ;;
+            esac
+          done
