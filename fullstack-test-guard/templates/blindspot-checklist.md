@@ -14,6 +14,10 @@
 - [ ] 已自动比对「前端调用的 API 路径」与「后端路由表」
 - [ ] 该检查接入 CI，不匹配即失败
 - [ ] 存量漂移已修掉（常见：后端重构后前端/测试仍用旧路径）
+- [ ] **参数级契约也比对过**：路径一致≠接口可用。后端若 `from __future__ import annotations`
+      却漏 `import CurrentUser`，FastAPI 会把 `current: CurrentUser` 这个依赖注入参数当成
+      **必填查询字段** → 所有写接口返回 `400 xxx Field required`，页面能打开但一保存就失败。
+      这类 bug 路径级契约守卫抓不到，必须靠「打真实 app + 真实 DB 的集成用例」（见第五节）。
 
 ## 三、Schema 守卫（抓缺表 / 缺列）
 
