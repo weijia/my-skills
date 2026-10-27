@@ -57,11 +57,12 @@ my-skills/
 │   ├── skill.md               # 根因分析 + 超时修复方案 + 复盘清单
 │   └── templates/
 │       └── mqtt-timeout-reference.cpp  # 连接/断开/订阅/HTTP 带超时代码模式
-├── go-mdns/                   ← Go 用 mDNS/DNS-SD 做局域网零配置发现 · 休眠唤醒换 IP 仍可自愈
-│   ├── skill.md               # 坑位（zeroconf 缓存 IP 陷阱）+ 广播端重广播 / 发现端 Watch 模式
+├── go-mdns/                   ← Go 用 mDNS/DNS-SD 做局域网零配置发现 · 换 IP 自愈 + Windows 发现端修复
+│   ├── skill.md               # 广播端重广播/发现端 Watch + Windows 发现端收不到远程 mDNS 的根因与自实现修复
 │   └── templates/
-│       ├── advertise_ipwatch.go   # 广播端：轮询接口地址、变化时 goodbye+重注册（核心修复）
-│       └── discover_watch.go      # 发现端：持续 Watch + 动态重定连接地址
+│       ├── advertise_ipwatch.go      # 广播端：轮询接口地址、变化时 goodbye+重注册（核心修复）
+│       ├── discover_watch.go         # 发现端：持续 Watch + 动态重定连接地址
+│       └── mdns_receiver_probe.go    # 排障：绑接口 IP + QU 收包检测（诊断"收不到远程 mDNS"）
 └── [skill-name]/              ← 更多 skills...
     ├── skill.md
     └── templates/
@@ -83,7 +84,7 @@ my-skills/
 | [doc-writer](./doc-writer/SKILL.md) | 开发项目文档写作：需求（PRD）/ 用例 / 设计文档的结构化规范与模板 | 写 / 改需求、用例、设计文档时 |
 | [testcase-writer](./testcase-writer/SKILL.md) | 测试用例写作：测试计划 / 用例 / 清单 / 报告，含可追溯矩阵与正负向/边界覆盖 | 写 / 改测试文档时 |
 | [cpp-daemon-mqtt-hang](./cpp-daemon-mqtt-hang/skill.md) | 修复 paho-mqtt-cpp 挂起导致托盘退出后进程不退 / 图标残留（连接/断开/上传加有限超时 + 锁外 wait） | 遇到 MQTT 线程退出卡死 / join 不返回时 |
-| [go-mdns](./go-mdns/skill.md) | Go 用 mDNS/DNS-SD 做局域网零配置发现；解决 zeroconf 缓存 IP 导致休眠唤醒/换网后失效，广播端轮询重广播 + 发现端持续 Watch 重定地址 | 在 Go 里自动发现局域网服务、或排查"换网络后 mDNS 失效"时 |
+| [go-mdns](./go-mdns/skill.md) | Go 用 mDNS/DNS-SD 做局域网零配置发现；广播端轮询重广播解决换 IP 失效 + 发现端持续 Watch 重定地址；并含 Windows 上发现端收不到远程 mDNS 的根因（组播投递 + QU 位）与自实现修复 | 在 Go 里自动发现局域网服务、或排查"换网络后 mDNS 失效 / Windows 收不到远程 mDNS"时 |
 
 ## 如何使用
 
