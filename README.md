@@ -63,6 +63,12 @@ my-skills/
 │       ├── advertise_ipwatch.go      # 广播端：轮询接口地址、变化时 goodbye+重注册（核心修复）
 │       ├── discover_watch.go         # 发现端：持续 Watch + 动态重定连接地址
 │       └── mdns_receiver_probe.go    # 排障：绑接口 IP + QU 收包检测（诊断"收不到远程 mDNS"）
+├── go-nats-cluster-mdns/      ← route 版 mDNS + 动态 reload：让 NATS 集群自动组网 · IP 变化事件自愈
+│   ├── skill.md               # 广播 _nats-route._tcp + 系统账号 reload（$SYS.REQ.SERVER.<id>.RELOAD）+ 换 IP 自愈
+│   └── templates/
+│       ├── ipwatch.go              # Windows NotifyIpInterfaceChange 事件驱动 IP 变化通知（非轮询）
+│       ├── reload_sys_account.go   # 系统账号触发热重载的最小 NATS 客户端（零第三方依赖）
+│       └── main_loop_ticker.go     # 主循环 Ticker（防饿死）+ discovered TTL + IP 事件重建骨架
 └── [skill-name]/              ← 更多 skills...
     ├── skill.md
     └── templates/
@@ -85,6 +91,7 @@ my-skills/
 | [testcase-writer](./testcase-writer/SKILL.md) | 测试用例写作：测试计划 / 用例 / 清单 / 报告，含可追溯矩阵与正负向/边界覆盖 | 写 / 改测试文档时 |
 | [cpp-daemon-mqtt-hang](./cpp-daemon-mqtt-hang/skill.md) | 修复 paho-mqtt-cpp 挂起导致托盘退出后进程不退 / 图标残留（连接/断开/上传加有限超时 + 锁外 wait） | 遇到 MQTT 线程退出卡死 / join 不返回时 |
 | [go-mdns](./go-mdns/skill.md) | Go 用 mDNS/DNS-SD 做局域网零配置发现；广播端轮询重广播解决换 IP 失效 + 发现端持续 Watch 重定地址；并含 Windows 上发现端收不到远程 mDNS 的根因（组播投递 + QU 位）与自实现修复 | 在 Go 里自动发现局域网服务、或排查"换网络后 mDNS 失效 / Windows 收不到远程 mDNS"时 |
+| [go-nats-cluster-mdns](./go-nats-cluster-mdns/skill.md) | 用"route 版 mDNS + 动态 reload"让 NATS 集群自动组网：广播 `_nats-route._tcp` + 系统账号触发 reload（`$SYS.REQ.SERVER.<id>.RELOAD`）+ 换 IP 用 `NotifyIpInterfaceChange` 事件自愈；含 include 相对路径 / `$SYS` 变量 / 主循环 timer 饿死等实测坑 | 让同网段 NATS 节点自动互相发现并加入集群、或节点换 IP 后集群失联时 |
 
 ## 如何使用
 
