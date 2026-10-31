@@ -69,6 +69,20 @@ my-skills/
 │       ├── ipwatch.go              # Windows NotifyIpInterfaceChange 事件驱动 IP 变化通知（非轮询）
 │       ├── reload_sys_account.go   # 系统账号触发热重载的最小 NATS 客户端（零第三方依赖）
 │       └── main_loop_ticker.go     # 主循环 Ticker（防饿死）+ discovered TTL + IP 事件重建骨架
+├── fullstack-test-guard/      ← 全栈测试盲区守卫（契约 / Schema / 部署 / 真实冒烟）
+│   ├── SKILL.md               # 四层盲区表 + 6 条硬性纪律 + 排查动作
+│   └── templates/
+│       ├── contract-check.py        # 前端 API 路径 ↔ 后端路由 契约比对
+│       ├── schema-check.py          # ORM 元数据 ↔ 目标库 schema 一致性校验
+│       ├── deploy-guard.yml         # 迁移 Job 重跑 + 等待完成 + 业务冒烟
+│       └── blindspot-checklist.md   # 交付前盲区自查清单
+├── mdns-pairing/              ← 局域网零配置发现 + 配对互认（mDNS/NSD + token 审批）
+│   ├── skill.md               # 协议契约 + NSD 纪律 + 审批状态机踩坑 + 排查清单
+│   └── templates/
+│       ├── MdnsAdvertiser.java      # Android NSD 宣告（撞名重试/自愈/组播锁/UTF-8 名称）
+│       ├── MdnsDiscovery.java       # Android NSD 发现（resolve + TXT、排除自身、重扫）
+│       ├── pair-store.js            # 一次性 token 状态机（待审过滤 / CAP / 双 TTL）
+│       └── pair-routes.js           # 数据口申请+轮询、控制口待审+审批、对端请求超时
 └── [skill-name]/              ← 更多 skills...
     ├── skill.md
     └── templates/
@@ -92,6 +106,8 @@ my-skills/
 | [cpp-daemon-mqtt-hang](./cpp-daemon-mqtt-hang/skill.md) | 修复 paho-mqtt-cpp 挂起导致托盘退出后进程不退 / 图标残留（连接/断开/上传加有限超时 + 锁外 wait） | 遇到 MQTT 线程退出卡死 / join 不返回时 |
 | [go-mdns](./go-mdns/skill.md) | Go 用 mDNS/DNS-SD 做局域网零配置发现；广播端轮询重广播解决换 IP 失效 + 发现端持续 Watch 重定地址；并含 Windows 上发现端收不到远程 mDNS 的根因（组播投递 + QU 位）与自实现修复 | 在 Go 里自动发现局域网服务、或排查"换网络后 mDNS 失效 / Windows 收不到远程 mDNS"时 |
 | [go-nats-cluster-mdns](./go-nats-cluster-mdns/skill.md) | 用"route 版 mDNS + 动态 reload"让 NATS 集群自动组网：广播 `_nats-route._tcp` + 系统账号触发 reload（`$SYS.REQ.SERVER.<id>.RELOAD`）+ 换 IP 用 `NotifyIpInterfaceChange` 事件自愈；含 include 相对路径 / `$SYS` 变量 / 主循环 timer 饿死等实测坑 | 让同网段 NATS 节点自动互相发现并加入集群、或节点换 IP 后集群失联时 |
+| [fullstack-test-guard](./fullstack-test-guard/SKILL.md) | 全栈测试盲区守卫：识别离线桩 E2E / 自动建表测试库造成的盲区，补契约、Schema、部署迁移、真实冒烟四层防护 | 补齐/评审测试，或出现「线上报错但测试全绿」时 |
+| [mdns-pairing](./mdns-pairing/skill.md) | 局域网零配置发现 + 配对互认：Android NSD 宣告/发现、一次性 token 人工审批、待审列表与状态口径纪律 | 做局域网自动发现/免输 IP 配对，或出现「能看到设备却配不上」「点允许没反应」时 |
 
 ## 如何使用
 
